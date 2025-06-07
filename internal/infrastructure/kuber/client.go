@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/inviewteam/fenrir.executor/cmd/internal/domain/entity"
+	"github.com/inviewteam/fenrir.executor/internal/domain/entity"
+	"github.com/inviewteam/fenrir.executor/internal/domain/service"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,11 +17,7 @@ type Repository struct {
 	client *kubernetes.Clientset
 }
 
-func New(path *string) (*Repository, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", *path)
-	if err != nil {
-		return nil, err
-	}
+func New(config *rest.Config) (*Repository, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -34,7 +32,7 @@ func (r *Repository) List(ctx context.Context, namespace string) ([]*entity.Pod,
 	}
 	var ePods []*entity.Pod
 	for _, pod := range pods.Items {
-		ePods = append(ePods, entity.NewPod(string(pod.UID), pod.Name, pod.Status.Message))
+		ePods = append(ePods, entity.NewPod(pod.Name, string(pod.Status.Phase)))
 	}
 	return ePods, nil
 }
@@ -56,7 +54,33 @@ func (r *Repository) Scale(ctx context.Context, namespace, deploymentName string
 func (r *Repository) Delete(ctx context.Context, namespace, podName string) error {
 	err := r.client.CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete pod: %v", err)
+		if kerrors.IsNotFound(err) {
+			return service.ErrPodNotFound
+		} else {
+			return fmt.Errorf("failed to delete pod: %v", err)
+		}
 	}
 	return nil
+}
+
+func (r *Repository) GetPodByName(ctx context.Context, namespace, podName string) (*entity.Pod, error) {
+	pod, err := r.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, service.ErrPodNotFound
+		} else {
+			return nil, fmt.Errorf("failed to get pod: %v", err)
+		}
+	}
+
+	return entity.NewPod(pod.Name, string(pod.Status.Phase)), nil
+}
+
+func (r *Repository) GetDeploymentByName(ctx context.Context, namespace string, deploymentName string) (*entity.Deployment, error) {
+	dpClient := r.client.AppsV1().Deployments(namespace)
+	deployment, err := dpClient.Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %v", err)
+	}
+	return &entity.Deployment{Name: deployment.Name, Replicas: *deployment.Spec.Replicas}, nil
 }

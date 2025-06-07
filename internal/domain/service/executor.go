@@ -1,13 +1,71 @@
 package service
 
-import "github.com/inviewteam/fenrir.executor/cmd/internal/domain/entity"
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/inviewteam/fenrir.executor/internal/domain/entity"
+	log "github.com/sirupsen/logrus"
+)
 
 type Executor struct {
-	podRepo entity.PodRepository
+	kubeRepo entity.KubernetesRepository
 }
 
-func New(pRepo *entity.PodRepository) *Executor {
+func New(pRepo entity.KubernetesRepository) *Executor {
 	return &Executor{
-		podRepo: *pRepo,
+		kubeRepo: pRepo,
 	}
+}
+
+func (s *Executor) Restart(ctx context.Context, namespace, podName string) error {
+	log.Infof("Restart pod %s", podName)
+	err := s.kubeRepo.Delete(ctx, namespace, podName)
+	if err != nil {
+		return err
+	}
+
+	for {
+		_, err := s.kubeRepo.GetPodByName(ctx, namespace, podName)
+		if err != nil {
+			if err == ErrPodNotFound {
+				break
+			}
+			return err
+		}
+		log.Infof("Wait when pod %s restart", podName)
+		time.Sleep(5 * time.Second)
+	}
+	return nil
+}
+
+func (s *Executor) Scale(ctx context.Context, namespace, deploymentName string, targetReplicas int32) error {
+	log.Infof("Scale deployment %s to replicas %d", deploymentName, targetReplicas)
+	deployment, err := s.kubeRepo.GetDeploymentByName(ctx, namespace, deploymentName)
+	if err != nil {
+		return fmt.Errorf("failed to scale: %v", err)
+	}
+	if deployment == nil {
+		return fmt.Errorf("failed to scale: %v", ErrDeploymentNotFound)
+	}
+	err = s.kubeRepo.Scale(ctx, namespace, deploymentName, targetReplicas)
+	if err != nil {
+		return fmt.Errorf("failed to scale: %v", err)
+	}
+
+	for {
+		deployment, err := s.kubeRepo.GetDeploymentByName(ctx, namespace, deploymentName)
+		if err != nil {
+			return fmt.Errorf("failed to scale: %v", err)
+		}
+
+		if deployment.Replicas == targetReplicas {
+			break
+		}
+
+		log.Infof("Wait until deployment %s end scalling", deploymentName)
+		time.Sleep(5 * time.Second)
+	}
+	return nil
 }

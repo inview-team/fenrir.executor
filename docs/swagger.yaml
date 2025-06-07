@@ -1,0 +1,55 @@
+basePath: /
+host: 127.0.0.1
+info:
+  contact: {}
+  description: Backend Server for Competitions
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Backend API
+  version: "1.0"
+paths:
+  /{namespace}/deployments/{pod_name}:
+    put:
+      description: Scale Deployment
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of Deployment
+        in: path
+        name: deployment_name
+        required: true
+        type: string
+      - description: Amount of Replicas
+        in: query
+        name: replicas
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Scale Deployment
+      tags:
+      - Deployments
+  /{namespace}/pods/{pod_name}:
+    delete:
+      description: restart pod
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Restart Pod
+      tags:
+      - Pods
+swagger: "2.0"

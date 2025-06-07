@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"path/filepath"
 
-	"github.com/inviewteam/fenrir.executor/cmd/internal/infrastructure/kuber"
+	"github.com/inviewteam/fenrir.executor/internal/application"
+	server "github.com/inviewteam/fenrir.executor/internal/infrastructure/http"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
-	ctx := context.TODO()
+	ctx := context.Background()
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
@@ -20,28 +21,16 @@ func main() {
 	}
 	flag.Parse()
 
-	repo, err := kuber.New(kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
 		panic(err)
 	}
 
-	pods, _ := repo.List(ctx, "guestbook")
-	for _, pod := range pods {
-		fmt.Println(pod)
-	}
-
-	// err = repo.Scale(ctx, "guestbook", "frontend", 6)
-	// if err != nil {
-	// 	fmt.Print(err)
-	// }
-
-	err = repo.Delete(ctx, "guestbook", "frontend-795b566649-d482j")
+	app, err := application.New(ctx, config)
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
-	pods, _ = repo.List(ctx, "guestbook")
-	for _, pod := range pods {
-		fmt.Println(pod)
-	}
+	srv := server.NewServer(app)
+	srv.Start(ctx)
 }

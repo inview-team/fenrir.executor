@@ -1,0 +1,81 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Backend Server for Competitions",
+        "title": "Swagger Backend API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "127.0.0.1",
+    "basePath": "/",
+    "paths": {
+        "/{namespace}/deployments/{pod_name}": {
+            "put": {
+                "description": "Scale Deployment",
+                "tags": [
+                    "Deployments"
+                ],
+                "summary": "Scale Deployment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of Deployment",
+                        "name": "deployment_name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Amount of Replicas",
+                        "name": "replicas",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/{namespace}/pods/{pod_name}": {
+            "delete": {
+                "description": "restart pod",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Restart Pod",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of pod",
+                        "name": "pod_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    }
+}
