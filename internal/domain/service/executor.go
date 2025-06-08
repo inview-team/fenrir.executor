@@ -84,6 +84,11 @@ func (s *Executor) GetPodByName(ctx context.Context, namespace string, podName s
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod by name: %w", err)
 	}
+	metrics, err := s.kubeRepo.GetPodMetrics(ctx, namespace, podName)
+	if err != nil {
+		log.Errorf("failed to get pod metrics: %w", err)
+	}
+	pod.Resources = metrics
 	return pod, nil
 }
 

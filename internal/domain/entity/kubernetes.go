@@ -39,6 +39,7 @@ func NewPod(name, status string, restarts int, age time.Duration, resources []*C
 type KubernetesRepository interface {
 	ListPodsByDeployment(ctx context.Context, namespace, deploymentName string) ([]*Pod, error)
 	GetPodByName(ctx context.Context, namespace, name string) (*Pod, error)
+	GetPodMetrics(ctx context.Context, namespace, name string) ([]*ContainerResources, error)
 	GetDeploymentByName(ctx context.Context, namespace, name string) (*Deployment, error)
 	Delete(ctx context.Context, namespace string, podName string) error
 	Scale(ctx context.Context, namespace, deploymentName string, replicas int32) error

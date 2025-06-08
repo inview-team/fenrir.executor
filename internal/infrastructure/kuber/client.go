@@ -10,7 +10,6 @@ import (
 	"github.com/inviewteam/fenrir.executor/internal/domain/service"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -119,7 +118,7 @@ func (r *Repository) GetPodMetrics(ctx context.Context, namespace, podName strin
 		}
 	}
 
-	podMetrics, err := r.mClient.MetricsV1beta1().PodMetricses(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	podMetrics, err := r.mClient.MetricsV1beta1().PodMetricses(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod metrics: %w", err)
 	}
@@ -129,36 +128,36 @@ func (r *Repository) GetPodMetrics(ctx context.Context, namespace, podName strin
 		metricsMap[c.Name] = c.Usage
 	}
 
-	var cResources []*entity.ContainerResources
-	fmt.Printf("Метрики и лимиты пода %s/%s:\n", namespace, podName)
+	resources := make([]*entity.ContainerResources, 0, len(pod.Spec.Containers))
 	for _, container := range pod.Spec.Containers {
 		usage, ok := metricsMap[container.Name]
-		if !ok {
-			fmt.Printf("  Контейнер %s: метрики не найдены\n", container.Name)
-			continue
+		var cpuUsage, memUsage int64
+		if ok {
+			cpuUsage = usage.Cpu().MilliValue() * 1000000 // милликоны -> наносекунды
+			memUsage = usage.Memory().Value()
 		}
 
-		cpuLimit := resource.NewQuantity(0, resource.DecimalSI)
-		memLimit := resource.NewQuantity(0, resource.BinarySI)
-
+		cpuLimit := int64(0)
+		memLimit := int64(0)
 		if container.Resources.Limits != nil {
-			if val, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
-				cpuLimit = &val
+			if cpuQ, ok := container.Resources.Limits[v1.ResourceCPU]; ok {
+				cpuLimit = cpuQ.MilliValue() * 1000000
 			}
-			if val, ok := container.Resources.Limits[v1.ResourceMemory]; ok {
-				memLimit = &val
+			if memQ, ok := container.Resources.Limits[v1.ResourceMemory]; ok {
+				memLimit = memQ.Value()
 			}
 		}
 
-		cResources = append(cResources, &entity.ContainerResources{
+		resources = append(resources, &entity.ContainerResources{
 			Name:         container.Name,
-			CpuUsage:     usage.Cpu().Value(),
-			MemoryUsage:  usage.Memory().Value(),
-			CpuLimits:    cpuLimit.Value(),
-			MemoryLimits: memLimit.Value(),
+			CpuUsage:     cpuUsage,
+			MemoryUsage:  memUsage,
+			CpuLimits:    cpuLimit,
+			MemoryLimits: memLimit,
 		})
 	}
-	return cResources, nil
+
+	return resources, nil
 }
 
 func (r *Repository) GetDeploymentByName(ctx context.Context, namespace string, deploymentName string) (*entity.Deployment, error) {
