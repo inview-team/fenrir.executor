@@ -193,6 +193,15 @@ func (r *Repository) GetDeploymentByName(ctx context.Context, namespace string, 
 }
 
 func (r *Repository) GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error) {
+	_, err := r.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return "", service.ErrPodNotFound
+		} else {
+			return "", fmt.Errorf("failed to get logs: %w", err)
+		}
+	}
+
 	podLogOpts := v1.PodLogOptions{
 		Container: containerName,
 		TailLines: &tailLines,
