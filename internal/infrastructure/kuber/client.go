@@ -108,7 +108,7 @@ func (r *Repository) GetPodByName(ctx context.Context, namespace, podName string
 		nil), nil
 }
 
-func (r *Repository) GetPodMetrics(ctx context.Context, namespace, podName string) ([]*entity.ContainerResources, error) {
+func (r *Repository) GetPodContainers(ctx context.Context, namespace, podName string) ([]*entity.Container, error) {
 	pod, err := r.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -128,7 +128,7 @@ func (r *Repository) GetPodMetrics(ctx context.Context, namespace, podName strin
 		metricsMap[c.Name] = c.Usage
 	}
 
-	resources := make([]*entity.ContainerResources, 0, len(pod.Spec.Containers))
+	containers := make(map[string]*entity.Container, len(pod.Spec.Containers))
 	for _, container := range pod.Spec.Containers {
 		usage, ok := metricsMap[container.Name]
 		var cpuUsage, memUsage int64
@@ -148,16 +148,36 @@ func (r *Repository) GetPodMetrics(ctx context.Context, namespace, podName strin
 			}
 		}
 
-		resources = append(resources, &entity.ContainerResources{
+		containers[container.Name] = &entity.Container{
 			Name:         container.Name,
+			State:        "",
 			CpuUsage:     cpuUsage,
 			MemoryUsage:  memUsage,
 			CpuLimits:    cpuLimit,
 			MemoryLimits: memLimit,
-		})
+		}
 	}
 
-	return resources, nil
+	eContainers := make([]*entity.Container, 0, len(pod.Spec.Containers))
+	for _, container := range pod.Status.ContainerStatuses {
+		eContainer, ok := containers[container.Name]
+		if !ok {
+			continue
+		}
+
+		if container.State.Running != nil {
+			eContainer.State = "Running"
+		} else if container.State.Waiting != nil {
+			eContainer.State = "Waiting"
+		} else if container.State.Terminated != nil {
+			eContainer.State = "Terminated"
+		}
+
+		eContainers = append(eContainers, eContainer)
+
+	}
+
+	return eContainers, nil
 }
 
 func (r *Repository) GetDeploymentByName(ctx context.Context, namespace string, deploymentName string) (*entity.Deployment, error) {

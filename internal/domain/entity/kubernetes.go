@@ -6,15 +6,16 @@ import (
 )
 
 type Pod struct {
-	Name      string
-	Status    string
-	Restarts  int
-	Age       time.Duration
-	Resources []*ContainerResources
+	Name       string
+	Status     string
+	Restarts   int
+	Age        time.Duration
+	Containers []*Container
 }
 
-type ContainerResources struct {
+type Container struct {
 	Name         string
+	State        string
 	CpuUsage     int64
 	MemoryUsage  int64
 	CpuLimits    int64
@@ -26,20 +27,20 @@ type Deployment struct {
 	Replicas int32
 }
 
-func NewPod(name, status string, restarts int, age time.Duration, resources []*ContainerResources) *Pod {
+func NewPod(name, status string, restarts int, age time.Duration, containers []*Container) *Pod {
 	return &Pod{
-		Name:      name,
-		Status:    status,
-		Restarts:  restarts,
-		Age:       age,
-		Resources: resources,
+		Name:       name,
+		Status:     status,
+		Restarts:   restarts,
+		Age:        age,
+		Containers: containers,
 	}
 }
 
 type KubernetesRepository interface {
 	ListPodsByDeployment(ctx context.Context, namespace, deploymentName string) ([]*Pod, error)
 	GetPodByName(ctx context.Context, namespace, name string) (*Pod, error)
-	GetPodMetrics(ctx context.Context, namespace, name string) ([]*ContainerResources, error)
+	GetPodContainers(ctx context.Context, namespace, name string) ([]*Container, error)
 	GetDeploymentByName(ctx context.Context, namespace, name string) (*Deployment, error)
 	Delete(ctx context.Context, namespace string, podName string) error
 	Scale(ctx context.Context, namespace, deploymentName string, replicas int32) error
