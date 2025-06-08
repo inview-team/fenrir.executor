@@ -84,6 +84,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/kubernetes/{namespace}/deployments/{deployment_name}/describe": {
+            "get": {
+                "description": "Describe Deployment",
+                "tags": [
+                    "Deployments"
+                ],
+                "summary": "Describe Deployment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of Deployment",
+                        "name": "deployment_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/kubernetes/{namespace}/deployments/{deployment_name}/rollback": {
+            "post": {
+                "description": "Rollback a deployment to the previous version",
+                "tags": [
+                    "Deployments"
+                ],
+                "summary": "Rollback Deployment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Deployment name",
+                        "name": "deployment_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/kubernetes/{namespace}/pods": {
             "get": {
                 "description": "Lists Pods by Deployment",
@@ -177,10 +240,89 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/kubernetes/{namespace}/pods/{pod_name}/describe": {
+            "get": {
+                "description": "Describe Pod",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Describe Pod",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of pod",
+                        "name": "pod_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/kubernetes/{namespace}/pods/{pod_name}/logs": {
+            "get": {
+                "description": "Get Pod Logs",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Get Pod Logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of pod",
+                        "name": "pod_name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of container",
+                        "name": "container",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of lines to show",
+                        "name": "tail",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "views.ContainerResources": {
+        "views.Container": {
             "type": "object",
             "properties": {
                 "cpuLimits": {
@@ -196,6 +338,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "state": {
                     "type": "string"
                 }
             }
@@ -239,14 +384,14 @@ const docTemplate = `{
                 "age": {
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                },
-                "resources": {
+                "containers": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/views.ContainerResources"
+                        "$ref": "#/definitions/views.Container"
                     }
+                },
+                "name": {
+                    "type": "string"
                 },
                 "restarts": {
                     "type": "integer"

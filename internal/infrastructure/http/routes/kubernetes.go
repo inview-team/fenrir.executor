@@ -185,20 +185,6 @@ func getDeploymentInformation(srv *service.Executor) http.Handler {
 	})
 }
 
-func makeKubernetesRoutes(r *mux.Router, app *application.Application) {
-	path := "/kubernetes"
-	serviceRouter := r.PathPrefix(path).Subrouter()
-	serviceRouter.Handle("/{namespace}/pods/{pod_name}", getPodInformation(app.ExecutorService)).Methods("GET")
-	serviceRouter.Handle("/{namespace}/pods/{pod_name}", restartPod(app.ExecutorService)).Methods("DELETE")
-	serviceRouter.Handle("/{namespace}/pods", listPodByDeployment(app.ExecutorService)).Methods("GET")
-	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", getDeploymentInformation(app.ExecutorService)).Methods("GET")
-	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", scaleDeployment(app.ExecutorService)).Methods("PUT")
-	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/rollback", rollbackDeployment(app.ExecutorService)).Methods("POST")
-	serviceRouter.Handle("/{namespace}/pods/{pod_name}/logs", getPodLogs(app.ExecutorService)).Methods("GET")
-	serviceRouter.Handle("/{namespace}/pods/{pod_name}/describe", describePod(app.ExecutorService)).Methods("GET")
-	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/describe", describeDeployment(app.ExecutorService)).Methods("GET")
-}
-
 // getPodLogs godoc
 //
 //	@Summary		Get Pod Logs
@@ -334,6 +320,9 @@ func rollbackDeployment(srv *service.Executor) http.Handler {
 			if errors.Is(err, service.ErrDeploymentNotFound) {
 				log.Info("deployment not found")
 				http.Error(w, "deployment not found", http.StatusNotFound)
+			} else if errors.Is(err, service.ErrNoPreviousRevisionsFound) {
+				log.Info("no available revisions")
+				http.Error(w, "deployment not found", http.StatusBadRequest)
 			} else {
 				log.Error(err.Error())
 				http.Error(w, errMsg, http.StatusInternalServerError)
@@ -342,4 +331,18 @@ func rollbackDeployment(srv *service.Executor) http.Handler {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
+}
+
+func makeKubernetesRoutes(r *mux.Router, app *application.Application) {
+	path := "/kubernetes"
+	serviceRouter := r.PathPrefix(path).Subrouter()
+	serviceRouter.Handle("/{namespace}/pods/{pod_name}", getPodInformation(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/pods/{pod_name}", restartPod(app.ExecutorService)).Methods("DELETE")
+	serviceRouter.Handle("/{namespace}/pods", listPodByDeployment(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", getDeploymentInformation(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", scaleDeployment(app.ExecutorService)).Methods("PUT")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/rollback", rollbackDeployment(app.ExecutorService)).Methods("PUT")
+	serviceRouter.Handle("/{namespace}/pods/{pod_name}/logs", getPodLogs(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/pods/{pod_name}/describe", describePod(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/describe", describeDeployment(app.ExecutorService)).Methods("GET")
 }

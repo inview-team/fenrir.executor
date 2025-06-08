@@ -1,6 +1,6 @@
 basePath: /api
 definitions:
-  views.ContainerResources:
+  views.Container:
     properties:
       cpuLimits:
         type: integer
@@ -11,6 +11,8 @@ definitions:
       memoryUsage:
         type: integer
       name:
+        type: string
+      state:
         type: string
     type: object
   views.Deployment:
@@ -38,12 +40,12 @@ definitions:
     properties:
       age:
         type: string
+      containers:
+        items:
+          $ref: '#/definitions/views.Container'
+        type: array
       name:
         type: string
-      resources:
-        items:
-          $ref: '#/definitions/views.ContainerResources'
-        type: array
       restarts:
         type: integer
       status:
@@ -101,6 +103,48 @@ paths:
         "200":
           description: OK
       summary: Scale Deployment
+      tags:
+      - Deployments
+  /kubernetes/{namespace}/deployments/{deployment_name}/describe:
+    get:
+      description: Describe Deployment
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of Deployment
+        in: path
+        name: deployment_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Describe Deployment
+      tags:
+      - Deployments
+  /kubernetes/{namespace}/deployments/{deployment_name}/rollback:
+    post:
+      description: Rollback a deployment to the previous version
+      parameters:
+      - description: Namespace name
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Deployment name
+        in: path
+        name: deployment_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Rollback Deployment
       tags:
       - Deployments
   /kubernetes/{namespace}/pods:
@@ -164,6 +208,59 @@ paths:
           schema:
             $ref: '#/definitions/views.Pod'
       summary: Get Pod Information
+      tags:
+      - Pods
+  /kubernetes/{namespace}/pods/{pod_name}/describe:
+    get:
+      description: Describe Pod
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Describe Pod
+      tags:
+      - Pods
+  /kubernetes/{namespace}/pods/{pod_name}/logs:
+    get:
+      description: Get Pod Logs
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      - description: Name of container
+        in: query
+        name: container
+        required: true
+        type: string
+      - description: Number of lines to show
+        in: query
+        name: tail
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Get Pod Logs
       tags:
       - Pods
 swagger: "2.0"

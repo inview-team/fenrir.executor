@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"sort"
 	"time"
 
 	"github.com/inviewteam/fenrir.executor/internal/domain/entity"
@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	log "github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
@@ -261,7 +263,7 @@ func (r *Repository) DescribeDeployment(ctx context.Context, namespace, deployme
 
 func (r *Repository) Rollback(ctx context.Context, namespace, deploymentName string) error {
 	dpClient := r.client.AppsV1().Deployments(namespace)
-	_, err := dpClient.Get(ctx, deploymentName, metav1.GetOptions{})
+	deployment, err := dpClient.Get(ctx, deploymentName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return service.ErrDeploymentNotFound
@@ -269,15 +271,44 @@ func (r *Repository) Rollback(ctx context.Context, namespace, deploymentName str
 		return fmt.Errorf("failed to get deployment: %w", err)
 	}
 
-	// To implement a rollback, you would typically use the Rollback object from the extensions/v1beta1 or apps/v1 API.
-	// However, the Rollback API is deprecated. The recommended approach is to manage the deployment's history
-	// and apply a previous revision.
-	// For simplicity, this example will just log the action.
-	// A real implementation would involve:
-	// 1. Listing ReplicaSets for the deployment to find previous revisions.
-	// 2. Getting the desired ReplicaSet's template.
-	// 3. Updating the deployment with the old template.
-	log.Printf("Rollback for deployment %s in namespace %s is not fully implemented in this example.", deploymentName, namespace)
+	revisionList, err := r.client.AppsV1().ReplicaSets(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "app=" + deployment.Spec.Selector.MatchLabels["app"], // Adjust label selector as needed
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list replica sets: %v", err)
+	}
+	log.Infof("found revisions %v", revisionList)
+
+	// Find the second last revision (previous revision)
+	var previousRevision *appsv1.ReplicaSet
+	if len(revisionList.Items) > 1 {
+		// Sort ReplicaSets by creation timestamp
+		sortReplicaSetsByCreationTimestamp(revisionList.Items)
+		previousRevision = &revisionList.Items[len(revisionList.Items)-2] // Get the second last
+	} else {
+		return service.ErrNoPreviousRevisionsFound
+	}
+
+	// Get the desired ReplicaSet's template
+	if previousRevision == nil {
+		return service.ErrNoPreviousRevisionsFound
+	}
+	oldTemplate := previousRevision.Spec.Template
+
+	// Update the deployment with the old template
+	deployment.Spec.Template = oldTemplate
+
+	// Apply the updated deployment
+	_, err = r.client.AppsV1().Deployments(namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update deployment: %v", err)
+	}
 
 	return nil
+}
+
+func sortReplicaSetsByCreationTimestamp(replicaSets []appsv1.ReplicaSet) {
+	sort.Slice(replicaSets, func(i, j int) bool {
+		return replicaSets[i].CreationTimestamp.Before(&replicaSets[j].CreationTimestamp)
+	})
 }
