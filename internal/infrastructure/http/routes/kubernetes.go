@@ -193,6 +193,7 @@ func makeKubernetesRoutes(r *mux.Router, app *application.Application) {
 	serviceRouter.Handle("/{namespace}/pods", listPodByDeployment(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", getDeploymentInformation(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", scaleDeployment(app.ExecutorService)).Methods("PUT")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/rollback", rollbackDeployment(app.ExecutorService)).Methods("POST")
 	serviceRouter.Handle("/{namespace}/pods/{pod_name}/logs", getPodLogs(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/pods/{pod_name}/describe", describePod(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/describe", describeDeployment(app.ExecutorService)).Methods("GET")
@@ -309,5 +310,36 @@ func describeDeployment(srv *service.Executor) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(desc))
+	})
+}
+
+// rollbackDeployment godoc
+//
+//	@Summary		Rollback Deployment
+//	@Description	Rollback a deployment to the previous version
+//	@Tags			Deployments
+//	@Param			namespace		path	string	true	"Namespace name"
+//	@Param			deployment_name	path	string	true	"Deployment name"
+//	@Success		200
+//	@Router			/kubernetes/{namespace}/deployments/{deployment_name}/rollback [post]
+func rollbackDeployment(srv *service.Executor) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		errMsg := "failed to rollback deployment"
+		ctx := r.Context()
+		namespace := mux.Vars(r)["namespace"]
+		deploymentName := mux.Vars(r)["deployment_name"]
+
+		err := srv.Rollback(ctx, namespace, deploymentName)
+		if err != nil {
+			if errors.Is(err, service.ErrDeploymentNotFound) {
+				log.Info("deployment not found")
+				http.Error(w, "deployment not found", http.StatusNotFound)
+			} else {
+				log.Error(err.Error())
+				http.Error(w, errMsg, http.StatusInternalServerError)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	})
 }

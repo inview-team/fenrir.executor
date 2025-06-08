@@ -47,4 +47,5 @@ type KubernetesRepository interface {
 	GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error)
 	DescribePod(ctx context.Context, namespace, podName string) (string, error)
 	DescribeDeployment(ctx context.Context, namespace, deploymentName string) (string, error)
+	Rollback(ctx context.Context, namespace, deploymentName string) error
 }
