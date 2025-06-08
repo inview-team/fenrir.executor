@@ -123,3 +123,12 @@ func (s *Executor) DescribeDeployment(ctx context.Context, namespace, deployment
 	}
 	return desc, nil
 }
+
+func (s *Executor) Rollback(ctx context.Context, namespace, deploymentName string) error {
+	log.Infof("Rollback deployment %s", deploymentName)
+	err := s.kubeRepo.Rollback(ctx, namespace, deploymentName)
+	if err != nil {
+		return fmt.Errorf("failed to rollback: %w", err)
+	}
+	return nil
+}

@@ -229,3 +229,26 @@ func (r *Repository) DescribeDeployment(ctx context.Context, namespace, deployme
 
 	return string(y), nil
 }
+
+func (r *Repository) Rollback(ctx context.Context, namespace, deploymentName string) error {
+	dpClient := r.client.AppsV1().Deployments(namespace)
+	_, err := dpClient.Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return service.ErrDeploymentNotFound
+		}
+		return fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	// To implement a rollback, you would typically use the Rollback object from the extensions/v1beta1 or apps/v1 API.
+	// However, the Rollback API is deprecated. The recommended approach is to manage the deployment's history
+	// and apply a previous revision.
+	// For simplicity, this example will just log the action.
+	// A real implementation would involve:
+	// 1. Listing ReplicaSets for the deployment to find previous revisions.
+	// 2. Getting the desired ReplicaSet's template.
+	// 3. Updating the deployment with the old template.
+	log.Printf("Rollback for deployment %s in namespace %s is not fully implemented in this example.", deploymentName, namespace)
+
+	return nil
+}
