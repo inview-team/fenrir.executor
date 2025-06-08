@@ -13,6 +13,27 @@ definitions:
       name:
         type: string
     type: object
+  views.Deployment:
+    properties:
+      name:
+        type: string
+      replicas:
+        type: integer
+    type: object
+  views.DeploymentPod:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  views.DeploymentPods:
+    properties:
+      pods:
+        items:
+          $ref: '#/definitions/views.DeploymentPod'
+        type: array
+    type: object
   views.Pod:
     properties:
       age:
@@ -36,70 +57,28 @@ info:
   title: Swagger Backend API
   version: "1.0"
 paths:
-  /kubernetes/{namespace}/deployments/{pod_name}:
+  /kubernetes/{namespace}/deployments/{deployment_name}:
     get:
-      description: Get Pod Information
+      description: Get Deployment Information by name and namespace
       parameters:
-      - description: Name of namespace
+      - description: Namespace name
         in: path
         name: namespace
         required: true
         type: string
-      - description: Name of pod
+      - description: Deployment name
         in: path
-        name: pod_name
+        name: deployment_name
         required: true
         type: string
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/views.Pod'
-      summary: Get Pod Information
+            $ref: '#/definitions/views.Deployment'
+      summary: Get Deployment Information
       tags:
-      - Pods
-  /kubernetes/{namespace}/pods:
-    get:
-      description: Get Pod Information
-      parameters:
-      - description: Name of namespace
-        in: path
-        name: namespace
-        required: true
-        type: string
-      - description: Amount of Replicas
-        in: query
-        name: deployment
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/views.Pod'
-      summary: Get Pod Information
-      tags:
-      - Pods
-  /kubernetes/{namespace}/pods/{pod_name}:
-    delete:
-      description: restart pod
-      parameters:
-      - description: Name of namespace
-        in: path
-        name: namespace
-        required: true
-        type: string
-      - description: Name of pod
-        in: path
-        name: pod_name
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-      summary: Restart Pod
-      tags:
-      - Pods
+      - Deployments
     put:
       description: Scale Deployment
       parameters:
@@ -124,4 +103,67 @@ paths:
       summary: Scale Deployment
       tags:
       - Deployments
+  /kubernetes/{namespace}/pods:
+    get:
+      description: Lists Pods by Deployment
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of deployment
+        in: query
+        name: deployment
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/views.DeploymentPods'
+      summary: Lists Pods by Deployment
+      tags:
+      - Pods
+  /kubernetes/{namespace}/pods/{pod_name}:
+    delete:
+      description: restart pod
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Restart Pod
+      tags:
+      - Pods
+    get:
+      description: Get Pod Information
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/views.Pod'
+      summary: Get Pod Information
+      tags:
+      - Pods
 swagger: "2.0"

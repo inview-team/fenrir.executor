@@ -16,25 +16,25 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/kubernetes/{namespace}/deployments/{pod_name}": {
+        "/kubernetes/{namespace}/deployments/{deployment_name}": {
             "get": {
-                "description": "Get Pod Information",
+                "description": "Get Deployment Information by name and namespace",
                 "tags": [
-                    "Pods"
+                    "Deployments"
                 ],
-                "summary": "Get Pod Information",
+                "summary": "Get Deployment Information",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Name of namespace",
+                        "description": "Namespace name",
                         "name": "namespace",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Name of pod",
-                        "name": "pod_name",
+                        "description": "Deployment name",
+                        "name": "deployment_name",
                         "in": "path",
                         "required": true
                     }
@@ -43,46 +43,11 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/views.Pod"
+                            "$ref": "#/definitions/views.Deployment"
                         }
                     }
                 }
-            }
-        },
-        "/kubernetes/{namespace}/pods": {
-            "get": {
-                "description": "Get Pod Information",
-                "tags": [
-                    "Pods"
-                ],
-                "summary": "Get Pod Information",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name of namespace",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Amount of Replicas",
-                        "name": "deployment",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/views.Pod"
-                        }
-                    }
-                }
-            }
-        },
-        "/kubernetes/{namespace}/pods/{pod_name}": {
+            },
             "put": {
                 "description": "Scale Deployment",
                 "tags": [
@@ -115,6 +80,72 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK"
+                    }
+                }
+            }
+        },
+        "/kubernetes/{namespace}/pods": {
+            "get": {
+                "description": "Lists Pods by Deployment",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Lists Pods by Deployment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of deployment",
+                        "name": "deployment",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/views.DeploymentPods"
+                        }
+                    }
+                }
+            }
+        },
+        "/kubernetes/{namespace}/pods/{pod_name}": {
+            "get": {
+                "description": "Get Pod Information",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Get Pod Information",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of pod",
+                        "name": "pod_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/views.Pod"
+                        }
                     }
                 }
             },
@@ -166,6 +197,39 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "views.Deployment": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "replicas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "views.DeploymentPod": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "views.DeploymentPods": {
+            "type": "object",
+            "properties": {
+                "pods": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/views.DeploymentPod"
+                    }
                 }
             }
         },

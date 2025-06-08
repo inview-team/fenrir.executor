@@ -54,7 +54,7 @@ func restartPod(srv *service.Executor) http.Handler {
 //	@Param			deployment_name	path	string	true	"Name of Deployment"
 //	@Param			replicas		query	string	true	"Amount of Replicas"
 //	@Success		200
-//	@Router			/kubernetes/{namespace}/pods/{pod_name} [put]
+//	@Router			/kubernetes/{namespace}/deployments/{deployment_name} [put]
 func scaleDeployment(srv *service.Executor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		errMsg := "failed to scale deployment"
@@ -91,7 +91,7 @@ func scaleDeployment(srv *service.Executor) http.Handler {
 //	@Param			namespace	path	string	true	"Name of namespace"
 //	@Param			pod_name	path	string	true	"Name of pod"
 //	@Success		200			object	views.Pod
-//	@Router			/kubernetes/{namespace}/deployments/{pod_name} [get]
+//	@Router			/kubernetes/{namespace}/pods/{pod_name} [get]
 func getPodInformation(srv *service.Executor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		errMsg := "failed to restart pod"
@@ -117,14 +117,14 @@ func getPodInformation(srv *service.Executor) http.Handler {
 	})
 }
 
-// getPodInformation godoc
+// listPodsByDeployment godoc
 //
-//	@Summary		Get Pod Information
-//	@Description	Get Pod Information
+//	@Summary		Lists Pods by Deployment
+//	@Description	Lists Pods by Deployment
 //	@Tags			Pods
 //	@Param			namespace	path	string	true	"Name of namespace"
-//	@Param			deployment		query	string	true	"Amount of Replicas"
-//	@Success		200			object	views.Pod
+//	@Param			deployment	query	string	true	"Name of deployment"
+//	@Success		200			object	views.DeploymentPods
 //	@Router			/kubernetes/{namespace}/pods [get]
 func listPodByDeployment(srv *service.Executor) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -151,11 +151,46 @@ func listPodByDeployment(srv *service.Executor) http.Handler {
 	})
 }
 
+// getDeploymentInformation godoc
+//
+//	@Summary		Get Deployment Information
+//	@Description	Get Deployment Information by name and namespace
+//	@Tags			Deployments
+//	@Param			namespace	 path	string	true	"Namespace name"
+//	@Param			deployment_name path	string	true	"Deployment name"
+//	@Success		200			object	views.Deployment
+//	@Router			/kubernetes/{namespace}/deployments/{deployment_name} [get]
+func getDeploymentInformation(srv *service.Executor) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		vars := mux.Vars(r)
+		namespace := vars["namespace"]
+		deploymentName := vars["deployment_name"]
+
+		deployment, err := srv.GetDeploymentByName(ctx, namespace, deploymentName)
+		if err != nil {
+			if errors.Is(err, service.ErrDeploymentNotFound) {
+				log.Info("deployment not found")
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				log.Error(err.Error())
+				http.Error(w, "failed to get deployment info", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(deployment)
+	})
+}
+
 func makeKubernetesRoutes(r *mux.Router, app *application.Application) {
 	path := "/kubernetes"
 	serviceRouter := r.PathPrefix(path).Subrouter()
 	serviceRouter.Handle("/{namespace}/pods/{pod_name}", getPodInformation(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/pods/{pod_name}", restartPod(app.ExecutorService)).Methods("DELETE")
 	serviceRouter.Handle("/{namespace}/pods", listPodByDeployment(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", getDeploymentInformation(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", scaleDeployment(app.ExecutorService)).Methods("PUT")
 }

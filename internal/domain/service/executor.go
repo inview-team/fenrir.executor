@@ -86,3 +86,11 @@ func (s *Executor) GetPodByName(ctx context.Context, namespace string, podName s
 	}
 	return pod, nil
 }
+
+func (s *Executor) GetDeploymentByName(ctx context.Context, namespace, deploymentName string) (*entity.Deployment, error) {
+	deployment, err := s.kubeRepo.GetDeploymentByName(ctx, namespace, deploymentName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %w", err)
+	}
+	return deployment, nil
+}

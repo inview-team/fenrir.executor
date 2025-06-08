@@ -42,7 +42,7 @@ func NewPod(e *entity.Pod) *Pod {
 	}
 }
 
-type Pods struct {
+type DeploymentPods struct {
 	Pods []DeploymentPod `json:"pods"`
 }
 
@@ -51,7 +51,7 @@ type DeploymentPod struct {
 	Status string `json:"status"`
 }
 
-func NewPods(podEntities []*entity.Pod) *Pods {
+func NewPods(podEntities []*entity.Pod) *DeploymentPods {
 	pods := make([]DeploymentPod, 0, len(podEntities))
 	for _, p := range podEntities {
 		pods = append(pods, DeploymentPod{
@@ -59,5 +59,10 @@ func NewPods(podEntities []*entity.Pod) *Pods {
 			Status: p.Status,
 		})
 	}
-	return &Pods{Pods: pods}
+	return &DeploymentPods{Pods: pods}
+}
+
+type Deployment struct {
+	Name     string `json:"name"`
+	Replicas int32  `json:"replicas"`
 }
