@@ -10,6 +10,7 @@ import (
 
 	"github.com/inviewteam/fenrir.executor/internal/domain/entity"
 	"github.com/inviewteam/fenrir.executor/internal/domain/service"
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
@@ -191,4 +192,40 @@ func (r *Repository) GetPodLogs(ctx context.Context, namespace, podName, contain
 	str := buf.String()
 
 	return str, nil
+}
+
+func (r *Repository) DescribePod(ctx context.Context, namespace, podName string) (string, error) {
+	pod, err := r.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return "", service.ErrPodNotFound
+		}
+		return "", fmt.Errorf("failed to get pod: %w", err)
+	}
+
+	pod.ManagedFields = nil
+	y, err := yaml.Marshal(pod)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal pod to yaml: %w", err)
+	}
+
+	return string(y), nil
+}
+
+func (r *Repository) DescribeDeployment(ctx context.Context, namespace, deploymentName string) (string, error) {
+	deployment, err := r.client.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return "", service.ErrDeploymentNotFound
+		}
+		return "", fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	deployment.ManagedFields = nil
+	y, err := yaml.Marshal(deployment)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal deployment to yaml: %w", err)
+	}
+
+	return string(y), nil
 }
