@@ -43,4 +43,5 @@ type KubernetesRepository interface {
 	GetDeploymentByName(ctx context.Context, namespace, name string) (*Deployment, error)
 	Delete(ctx context.Context, namespace string, podName string) error
 	Scale(ctx context.Context, namespace, deploymentName string, replicas int32) error
+	GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error)
 }

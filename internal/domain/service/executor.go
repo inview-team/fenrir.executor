@@ -99,3 +99,11 @@ func (s *Executor) GetDeploymentByName(ctx context.Context, namespace, deploymen
 	}
 	return deployment, nil
 }
+
+func (s *Executor) GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error) {
+	logs, err := s.kubeRepo.GetPodLogs(ctx, namespace, podName, containerName, tailLines)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod logs: %w", err)
+	}
+	return logs, nil
+}

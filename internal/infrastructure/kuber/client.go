@@ -1,8 +1,10 @@
 package kuber
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -167,4 +169,26 @@ func (r *Repository) GetDeploymentByName(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 	return &entity.Deployment{Name: deployment.Name, Replicas: *deployment.Spec.Replicas}, nil
+}
+
+func (r *Repository) GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error) {
+	podLogOpts := v1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tailLines,
+	}
+	req := r.client.CoreV1().Pods(namespace).GetLogs(podName, &podLogOpts)
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		return "", fmt.Errorf("error in opening stream: %w", err)
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", fmt.Errorf("error in copy information from podLogs to buf: %w", err)
+	}
+	str := buf.String()
+
+	return str, nil
 }
