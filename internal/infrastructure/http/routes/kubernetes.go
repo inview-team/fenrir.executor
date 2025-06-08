@@ -117,10 +117,45 @@ func getPodInformation(srv *service.Executor) http.Handler {
 	})
 }
 
+// getPodInformation godoc
+//
+//	@Summary		Get Pod Information
+//	@Description	Get Pod Information
+//	@Tags			Pods
+//	@Param			namespace	path	string	true	"Name of namespace"
+//	@Param			deployment		query	string	true	"Amount of Replicas"
+//	@Success		200			object	views.Pod
+//	@Router			/kubernetes/{namespace}/pods [get]
+func listPodByDeployment(srv *service.Executor) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		errMsg := "failed to restart pod"
+		ctx := r.Context()
+		namespace := mux.Vars(r)["namespace"]
+		deployment := r.URL.Query().Get("deployment")
+
+		pods, err := srv.ListPodByDeployment(ctx, namespace, deployment)
+		if err != nil {
+			if errors.Is(err, service.ErrDeploymentNotFound) {
+				log.Info("deployment not found")
+				http.Error(w, service.ErrDeploymentNotFound.Error(), http.StatusNotFound)
+			} else {
+				log.Error(err.Error())
+				http.Error(w, errMsg, http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(views.NewPods(pods))
+	})
+}
+
 func makeKubernetesRoutes(r *mux.Router, app *application.Application) {
 	path := "/kubernetes"
 	serviceRouter := r.PathPrefix(path).Subrouter()
 	serviceRouter.Handle("/{namespace}/pods/{pod_name}", getPodInformation(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/pods/{pod_name}", restartPod(app.ExecutorService)).Methods("DELETE")
+	serviceRouter.Handle("/{namespace}/pods", listPodByDeployment(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", scaleDeployment(app.ExecutorService)).Methods("PUT")
 }

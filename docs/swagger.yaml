@@ -58,6 +58,28 @@ paths:
       summary: Get Pod Information
       tags:
       - Pods
+  /kubernetes/{namespace}/pods:
+    get:
+      description: Get Pod Information
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Amount of Replicas
+        in: query
+        name: deployment
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/views.Pod'
+      summary: Get Pod Information
+      tags:
+      - Pods
   /kubernetes/{namespace}/pods/{pod_name}:
     delete:
       description: restart pod

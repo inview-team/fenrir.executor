@@ -35,8 +35,21 @@ func New(config *rest.Config) (*Repository, error) {
 	return &Repository{client: clientset, mClient: metricsClient}, nil
 }
 
-func (r *Repository) List(ctx context.Context, namespace string) ([]*entity.Pod, error) {
-	pods, err := r.client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+func (r *Repository) ListPodsByDeployment(ctx context.Context, namespace string, deploymentName string) ([]*entity.Pod, error) {
+	dpClient := r.client.AppsV1().Deployments(namespace)
+	deployment, err := dpClient.Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods of deployment: %w", err)
+	}
+
+	selector := deployment.Spec.Selector
+
+	// Convert selector to a string
+	labelSelector := metav1.FormatLabelSelector(selector)
+
+	pods, err := r.client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: labelSelector,
+	})
 	if err != nil {
 		return nil, err
 	}

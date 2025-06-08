@@ -37,7 +37,7 @@ func NewPod(name, status string, restarts int, age time.Duration, resources []*C
 }
 
 type KubernetesRepository interface {
-	List(ctx context.Context, namespace string) ([]*Pod, error)
+	ListPodsByDeployment(ctx context.Context, namespace, deploymentName string) ([]*Pod, error)
 	GetPodByName(ctx context.Context, namespace, name string) (*Pod, error)
 	GetDeploymentByName(ctx context.Context, namespace, name string) (*Deployment, error)
 	Delete(ctx context.Context, namespace string, podName string) error

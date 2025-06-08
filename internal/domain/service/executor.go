@@ -70,6 +70,15 @@ func (s *Executor) Scale(ctx context.Context, namespace, deploymentName string, 
 	return nil
 }
 
+func (s *Executor) ListPodByDeployment(ctx context.Context, namespace, deploymentName string) ([]*entity.Pod, error) {
+	pods, err := s.kubeRepo.ListPodsByDeployment(ctx, namespace, deploymentName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods by deployment: %w", err)
+	}
+
+	return pods, nil
+}
+
 func (s *Executor) GetPodByName(ctx context.Context, namespace string, podName string) (*entity.Pod, error) {
 	pod, err := s.kubeRepo.GetPodByName(ctx, namespace, podName)
 	if err != nil {

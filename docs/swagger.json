@@ -43,6 +43,39 @@
                 }
             }
         },
+        "/kubernetes/{namespace}/pods": {
+            "get": {
+                "description": "Get Pod Information",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Get Pod Information",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Amount of Replicas",
+                        "name": "deployment",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/views.Pod"
+                        }
+                    }
+                }
+            }
+        },
         "/kubernetes/{namespace}/pods/{pod_name}": {
             "put": {
                 "description": "Scale Deployment",
