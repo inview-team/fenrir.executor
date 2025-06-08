@@ -19,8 +19,8 @@ import (
 //	@description	Backend Server for Competitions
 //	@termsOfService	http://swagger.io/terms/
 
-// @host		127.0.0.1
-// @BasePath	/
+// @host		127.0.0.1:30000
+// @BasePath	/api
 type Server struct {
 	srv http.Server
 }

@@ -1,5 +1,34 @@
-basePath: /
-host: 127.0.0.1
+basePath: /api
+definitions:
+  views.ContainerResources:
+    properties:
+      cpuLimits:
+        type: integer
+      cpuUsage:
+        type: integer
+      memoryLimits:
+        type: integer
+      memoryUsage:
+        type: integer
+      name:
+        type: string
+    type: object
+  views.Pod:
+    properties:
+      age:
+        type: string
+      name:
+        type: string
+      resources:
+        items:
+          $ref: '#/definitions/views.ContainerResources'
+        type: array
+      restarts:
+        type: integer
+      status:
+        type: string
+    type: object
+host: 127.0.0.1:30000
 info:
   contact: {}
   description: Backend Server for Competitions
@@ -7,7 +36,48 @@ info:
   title: Swagger Backend API
   version: "1.0"
 paths:
-  /{namespace}/deployments/{pod_name}:
+  /kubernetes/{namespace}/deployments/{pod_name}:
+    get:
+      description: Get Pod Information
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/views.Pod'
+      summary: Get Pod Information
+      tags:
+      - Pods
+  /kubernetes/{namespace}/pods/{pod_name}:
+    delete:
+      description: restart pod
+      parameters:
+      - description: Name of namespace
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of pod
+        in: path
+        name: pod_name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+      summary: Restart Pod
+      tags:
+      - Pods
     put:
       description: Scale Deployment
       parameters:
@@ -32,24 +102,4 @@ paths:
       summary: Scale Deployment
       tags:
       - Deployments
-  /{namespace}/pods/{pod_name}:
-    delete:
-      description: restart pod
-      parameters:
-      - description: Name of namespace
-        in: path
-        name: namespace
-        required: true
-        type: string
-      - description: Name of pod
-        in: path
-        name: pod_name
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-      summary: Restart Pod
-      tags:
-      - Pods
 swagger: "2.0"

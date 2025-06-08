@@ -16,7 +16,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/{namespace}/deployments/{pod_name}": {
+        "/kubernetes/{namespace}/deployments/{pod_name}": {
+            "get": {
+                "description": "Get Pod Information",
+                "tags": [
+                    "Pods"
+                ],
+                "summary": "Get Pod Information",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of namespace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Name of pod",
+                        "name": "pod_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/views.Pod"
+                        }
+                    }
+                }
+            }
+        },
+        "/kubernetes/{namespace}/pods/{pod_name}": {
             "put": {
                 "description": "Scale Deployment",
                 "tags": [
@@ -51,9 +84,7 @@ const docTemplate = `{
                         "description": "OK"
                     }
                 }
-            }
-        },
-        "/{namespace}/pods/{pod_name}": {
+            },
             "delete": {
                 "description": "restart pod",
                 "tags": [
@@ -83,14 +114,59 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "definitions": {
+        "views.ContainerResources": {
+            "type": "object",
+            "properties": {
+                "cpuLimits": {
+                    "type": "integer"
+                },
+                "cpuUsage": {
+                    "type": "integer"
+                },
+                "memoryLimits": {
+                    "type": "integer"
+                },
+                "memoryUsage": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "views.Pod": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/views.ContainerResources"
+                    }
+                },
+                "restarts": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "127.0.0.1",
-	BasePath:         "/",
+	Host:             "127.0.0.1:30000",
+	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Swagger Backend API",
 	Description:      "Backend Server for Competitions",

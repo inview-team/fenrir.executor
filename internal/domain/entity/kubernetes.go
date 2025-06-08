@@ -1,10 +1,24 @@
 package entity
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Pod struct {
-	Name   string
-	Status string
+	Name      string
+	Status    string
+	Restarts  int
+	Age       time.Duration
+	Resources []*ContainerResources
+}
+
+type ContainerResources struct {
+	Name         string
+	CpuUsage     int64
+	MemoryUsage  int64
+	CpuLimits    int64
+	MemoryLimits int64
 }
 
 type Deployment struct {
@@ -12,10 +26,13 @@ type Deployment struct {
 	Replicas int32
 }
 
-func NewPod(name, status string) *Pod {
+func NewPod(name, status string, restarts int, age time.Duration, resources []*ContainerResources) *Pod {
 	return &Pod{
-		Name:   name,
-		Status: status,
+		Name:      name,
+		Status:    status,
+		Restarts:  restarts,
+		Age:       age,
+		Resources: resources,
 	}
 }
 
