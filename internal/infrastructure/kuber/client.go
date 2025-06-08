@@ -1,13 +1,16 @@
 package kuber
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
 	"github.com/inviewteam/fenrir.executor/internal/domain/entity"
 	"github.com/inviewteam/fenrir.executor/internal/domain/service"
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
@@ -187,4 +190,62 @@ func (r *Repository) GetDeploymentByName(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 	return &entity.Deployment{Name: deployment.Name, Replicas: *deployment.Spec.Replicas}, nil
+}
+
+func (r *Repository) GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error) {
+	podLogOpts := v1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tailLines,
+	}
+	req := r.client.CoreV1().Pods(namespace).GetLogs(podName, &podLogOpts)
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		return "", fmt.Errorf("error in opening stream: %w", err)
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", fmt.Errorf("error in copy information from podLogs to buf: %w", err)
+	}
+	str := buf.String()
+
+	return str, nil
+}
+
+func (r *Repository) DescribePod(ctx context.Context, namespace, podName string) (string, error) {
+	pod, err := r.client.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return "", service.ErrPodNotFound
+		}
+		return "", fmt.Errorf("failed to get pod: %w", err)
+	}
+
+	pod.ManagedFields = nil
+	y, err := yaml.Marshal(pod)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal pod to yaml: %w", err)
+	}
+
+	return string(y), nil
+}
+
+func (r *Repository) DescribeDeployment(ctx context.Context, namespace, deploymentName string) (string, error) {
+	deployment, err := r.client.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return "", service.ErrDeploymentNotFound
+		}
+		return "", fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	deployment.ManagedFields = nil
+	y, err := yaml.Marshal(deployment)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal deployment to yaml: %w", err)
+	}
+
+	return string(y), nil
 }

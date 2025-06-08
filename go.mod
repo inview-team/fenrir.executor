@@ -2,7 +2,12 @@ module github.com/inviewteam/fenrir.executor
 
 go 1.24.3
 
-require k8s.io/apimachinery v0.33.1
+require (
+	github.com/swaggo/swag v1.8.1
+	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/api v0.33.1
+	k8s.io/apimachinery v0.33.1
+)
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
@@ -21,7 +26,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
-	github.com/swaggo/swag v1.8.1 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
@@ -30,7 +34,6 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.33.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 )
 

@@ -193,4 +193,121 @@ func makeKubernetesRoutes(r *mux.Router, app *application.Application) {
 	serviceRouter.Handle("/{namespace}/pods", listPodByDeployment(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", getDeploymentInformation(app.ExecutorService)).Methods("GET")
 	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}", scaleDeployment(app.ExecutorService)).Methods("PUT")
+	serviceRouter.Handle("/{namespace}/pods/{pod_name}/logs", getPodLogs(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/pods/{pod_name}/describe", describePod(app.ExecutorService)).Methods("GET")
+	serviceRouter.Handle("/{namespace}/deployments/{deployment_name}/describe", describeDeployment(app.ExecutorService)).Methods("GET")
+}
+
+// getPodLogs godoc
+//
+//	@Summary		Get Pod Logs
+//	@Description	Get Pod Logs
+//	@Tags			Pods
+//	@Param			namespace	path	string	true	"Name of namespace"
+//	@Param			pod_name	path	string	true	"Name of pod"
+//	@Param			container	query	string	true	"Name of container"
+//	@Param			tail		query	int		false	"Number of lines to show"
+//	@Success		200			string	string
+//	@Router			/kubernetes/{namespace}/pods/{pod_name}/logs [get]
+func getPodLogs(srv *service.Executor) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		errMsg := "failed to get pod logs"
+		ctx := r.Context()
+		namespace := mux.Vars(r)["namespace"]
+		podName := mux.Vars(r)["pod_name"]
+		containerName := r.URL.Query().Get("container")
+		tailLinesStr := r.URL.Query().Get("tail")
+
+		var tailLines int64 = 100
+		if tailLinesStr != "" {
+			var err error
+			tailLines, err = strconv.ParseInt(tailLinesStr, 10, 64)
+			if err != nil {
+				log.Info("wrong payload")
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+		}
+
+		logs, err := srv.GetPodLogs(ctx, namespace, podName, containerName, tailLines)
+		if err != nil {
+			if errors.Is(err, service.ErrPodNotFound) {
+				log.Info("pod not found")
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				log.Error(err.Error())
+				http.Error(w, errMsg, http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(logs))
+	})
+}
+
+// describePod godoc
+//
+//	@Summary		Describe Pod
+//	@Description	Describe Pod
+//	@Tags			Pods
+//	@Param			namespace	path	string	true	"Name of namespace"
+//	@Param			pod_name	path	string	true	"Name of pod"
+//	@Success		200			string	string
+//	@Router			/kubernetes/{namespace}/pods/{pod_name}/describe [get]
+func describePod(srv *service.Executor) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		errMsg := "failed to describe pod"
+		ctx := r.Context()
+		namespace := mux.Vars(r)["namespace"]
+		podName := mux.Vars(r)["pod_name"]
+
+		desc, err := srv.DescribePod(ctx, namespace, podName)
+		if err != nil {
+			if errors.Is(err, service.ErrPodNotFound) {
+				log.Info("pod not found")
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				log.Error(err.Error())
+				http.Error(w, errMsg, http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(desc))
+	})
+}
+
+// describeDeployment godoc
+//
+//	@Summary		Describe Deployment
+//	@Description	Describe Deployment
+//	@Tags			Deployments
+//	@Param			namespace		path	string	true	"Name of namespace"
+//	@Param			deployment_name	path	string	true	"Name of Deployment"
+//	@Success		200				string	string
+//	@Router			/kubernetes/{namespace}/deployments/{deployment_name}/describe [get]
+func describeDeployment(srv *service.Executor) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		errMsg := "failed to describe deployment"
+		ctx := r.Context()
+		namespace := mux.Vars(r)["namespace"]
+		deploymentName := mux.Vars(r)["deployment_name"]
+
+		desc, err := srv.DescribeDeployment(ctx, namespace, deploymentName)
+		if err != nil {
+			if errors.Is(err, service.ErrDeploymentNotFound) {
+				log.Info("deployment not found")
+				http.Error(w, err.Error(), http.StatusNotFound)
+			} else {
+				log.Error(err.Error())
+				http.Error(w, errMsg, http.StatusInternalServerError)
+			}
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(desc))
+	})
 }

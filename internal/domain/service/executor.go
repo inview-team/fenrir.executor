@@ -99,3 +99,27 @@ func (s *Executor) GetDeploymentByName(ctx context.Context, namespace, deploymen
 	}
 	return deployment, nil
 }
+
+func (s *Executor) GetPodLogs(ctx context.Context, namespace, podName, containerName string, tailLines int64) (string, error) {
+	logs, err := s.kubeRepo.GetPodLogs(ctx, namespace, podName, containerName, tailLines)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod logs: %w", err)
+	}
+	return logs, nil
+}
+
+func (s *Executor) DescribePod(ctx context.Context, namespace, podName string) (string, error) {
+	desc, err := s.kubeRepo.DescribePod(ctx, namespace, podName)
+	if err != nil {
+		return "", fmt.Errorf("failed to describe pod: %w", err)
+	}
+	return desc, nil
+}
+
+func (s *Executor) DescribeDeployment(ctx context.Context, namespace, deploymentName string) (string, error) {
+	desc, err := s.kubeRepo.DescribeDeployment(ctx, namespace, deploymentName)
+	if err != nil {
+		return "", fmt.Errorf("failed to describe deployment: %w", err)
+	}
+	return desc, nil
+}
